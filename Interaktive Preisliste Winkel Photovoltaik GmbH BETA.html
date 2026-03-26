@@ -71,26 +71,6 @@
 [data-theme="bvb"] header { background: rgba(13,13,13,0.9); }
 [data-theme="bvb"] footer { background: rgba(13,13,13,0.95); }
 
-/* ── THEME: Schalke 04 ── */
-[data-theme="schalke"] {
-  --bg-primary: #080c18;
-  --bg-secondary: #0e1528;
-  --bg-tertiary: #162040;
-  --bg-hover: #1c284d;
-  --accent: #2d7fd3;
-  --accent-glow: #4a9ae8;
-  --accent-dim: rgba(45,127,211,0.2);
-  --green: #e8e8e8;
-  --green-dim: rgba(232,232,232,0.1);
-  --blue: #6baed6;
-  --red: #ef4444;
-  --text: #e8edf5;
-  --text2: #9bafc8;
-  --text3: #5a7090;
-  --border: #1a2a55;
-}
-[data-theme="schalke"] header { background: rgba(10,14,26,0.9); }
-[data-theme="schalke"] footer { background: rgba(10,14,26,0.95); }
 
 /* ── THEME: Natur / Grün ── */
 [data-theme="natur"] {
@@ -167,6 +147,32 @@
   color: var(--text3);
   pointer-events: none;
 }
+
+/* ── ENERGY FLOW DIAGRAM ── */
+.energy-flow-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 8 4;
+  animation: flowDash 1.2s linear infinite;
+}
+@keyframes flowDash { to { stroke-dashoffset: -12; } }
+.eflow-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+@media (max-width: 600px) { .eflow-kpi { grid-template-columns: 1fr 1fr; } }
+.eflow-kpi-box {
+  background: var(--bg-tertiary); border-radius: var(--radius-sm);
+  padding: 0.75rem; text-align: center;
+}
+.eflow-kpi-num { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.eflow-kpi-label { font-size: 0.68rem; color: var(--text3); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ── INVERTER LOGO PLACEHOLDER ── */
+.inv-logo-area {
+  width: 100%; height: 48px;
+  background: var(--bg-secondary); border: 1px dashed var(--border);
+  border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; margin-bottom: 0.75rem; overflow: hidden;
+}
+.inv-logo-area span { font-size: 0.72rem; color: var(--text3); font-weight: 500; }
 
 html { font-size: 16px; }
 body {
@@ -509,7 +515,7 @@ input[type="range"]::-moz-range-thumb {
 .dash-card.highlight { border-color: var(--green); background: rgba(16,185,129,0.05); }
 .dash-card.highlight .dash-num { color: var(--green); }
 
-/* 25-year chart */
+/* 20-year chart */
 .chart-container {
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 1.25rem; margin-top: 1rem;
@@ -866,14 +872,19 @@ footer {
 <body>
 
 <header>
-  <div class="logo" onclick="restartApp()" style="cursor:pointer" title="Neu starten">WINKEL <span>Photovoltaik</span></div>
+  <div class="logo" onclick="restartApp()" style="cursor:pointer;display:flex;align-items:center;gap:0.5rem" title="Neu starten">
+    <svg viewBox="0 0 520 100" style="height:28px;width:auto" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="wkSun" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#fde100"/><stop offset="100%" stop-color="#f5a623"/></linearGradient></defs>
+      <path d="M0 100 L0 0 A100 100 0 0 1 50 93.3 Q25 100 0 100Z" fill="url(#wkSun)"/>
+      <text x="62" y="78" fill="var(--text)" font-family="Arial,Helvetica,sans-serif" font-size="82" font-weight="900" letter-spacing="2">WINKEL</text>
+    </svg>
+  </div>
   <div class="steps-nav" id="stepsNav"></div>
   <div class="theme-select-wrap">
     <select class="theme-select" id="themeSelect" onchange="setTheme(this.value)" title="Design wählen">
       <option value="dark">Dark</option>
       <option value="light">Light</option>
       <option value="bvb">BVB Dortmund</option>
-      <option value="schalke">Schalke 04</option>
       <option value="natur">Natur</option>
       <option value="sunset">Sunset</option>
     </select>
@@ -894,8 +905,15 @@ footer {
     <div id="step0Content"></div>
   </section>
 
-  <!-- Step 1 -->
+  <!-- Step 1: Modultyp -->
   <section class="step-panel" id="step1">
+    <div class="step-title">Modultyp wählen</div>
+    <div class="step-subtitle">Welche Solarmodule sollen auf Ihr Dach?</div>
+    <div class="cards cards-2" id="step1Content"></div>
+  </section>
+
+  <!-- Step 2: Anlagengröße -->
+  <section class="step-panel" id="step2">
     <div class="step-title">Anlagengröße wählen</div>
     <div class="step-subtitle">Wie viel Solarpower darf es sein?</div>
     <div class="slider-section">
@@ -916,38 +934,38 @@ footer {
         <!-- Zahlungsart -->
         <div style="margin-top:1.5rem">
           <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:0.6rem">Zahlungsart wählen</div>
-          <div style="display:flex;gap:0.6rem" id="step1PayBtns"></div>
-          <div id="step1FinDetails"></div>
+          <div style="display:flex;gap:0.6rem" id="step2PayBtns"></div>
+          <div id="step2FinDetails"></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Step 2 -->
-  <section class="step-panel" id="step2">
+  <!-- Step 3: Wechselrichter -->
+  <section class="step-panel" id="step3">
     <div class="step-title">Wechselrichter wählen</div>
     <div class="step-subtitle">Das Herzstück Ihrer Anlage — wandelt Sonnenenergie in Strom um</div>
     <div id="inverterCards"></div>
   </section>
 
-  <!-- Step 3 -->
-  <section class="step-panel" id="step3">
+  <!-- Step 4: Speicher + Energiefluss -->
+  <section class="step-panel" id="step4">
     <div class="step-title">Batteriespeicher</div>
     <div class="step-subtitle">Sonnenenergie speichern und auch abends nutzen</div>
     <div id="batteryPromo"></div>
     <div class="cards cards-1" id="batteryCards"></div>
-    <div id="stageArrows"></div>
+    <div id="energyFlowPanel"></div>
   </section>
 
-  <!-- Step 4 -->
-  <section class="step-panel" id="step4">
+  <!-- Step 5: Extras -->
+  <section class="step-panel" id="step5">
     <div class="step-title">Zusatzoptionen</div>
     <div class="step-subtitle">Passen Sie Ihre Anlage an Ihre Bedürfnisse an</div>
     <div id="addonsContainer"></div>
   </section>
 
-  <!-- Step 5 -->
-  <section class="step-panel" id="step5">
+  <!-- Step 6: Übersicht -->
+  <section class="step-panel" id="step6">
     <div class="print-header">
       <h1>Winkel Photovoltaik GmbH — Ihre Konfiguration</h1>
       <p>Erstellt am <span id="printDate"></span></p>
@@ -969,11 +987,11 @@ footer {
       </div>
     </div>
     <div id="nutzenBlock"></div>
-    <button class="btn-wkb" onclick="goToStep(6)">Wirtschaftlichkeitsberechnung →</button>
+    <button class="btn-wkb" onclick="goToStep(7)">Wirtschaftlichkeitsberechnung →</button>
   </section>
 
-  <!-- Step 6 -->
-  <section class="step-panel" id="step6">
+  <!-- Step 7: WKB -->
+  <section class="step-panel" id="step7">
     <div class="step-title">Wirtschaftlichkeitsberechnung</div>
     <div class="step-subtitle">30-Jahres-Prognose Ihrer Photovoltaikanlage</div>
     <div id="wkbContent"></div>
@@ -990,7 +1008,19 @@ footer {
 // ══════════════════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════════════════
-const MODULE_WP = 470;
+const MODULE_WP = 470; // legacy default (AIKO)
+const MODULE_TYPES = [
+  { id:'trina', name:'Trina Solar', model:'Vertex S+ NEG9R.28', wp:455,
+    efficiency:'22,5 %', warranty:15, cells:'N-Type TOPCon',
+    dimensions:'1762 × 1134 × 30 mm', weight:'21,8 kg',
+    advantages:['Bewährte Qualität','Gutes Preis-Leistungs-Verhältnis','N-Type TOPCon Zellen','30 Jahre Leistungsgarantie'],
+    badge:'Preiswert', badgeCls:'badge-blue', premium:false },
+  { id:'aiko', name:'AIKO (ICO)', model:'NEOSTAR 3S+', wp:470,
+    efficiency:'23,6 %', warranty:25, cells:'ABC (All Back Contact)',
+    dimensions:'1722 × 1134 × 30 mm', weight:'20,5 kg',
+    advantages:['Höchste Effizienz (23,6 %)','ABC-Zellen — keine Kontakte auf Vorderseite','25 Jahre Produktgarantie','Mehr Ertrag pro Fläche','Besseres Schwachlichtverhalten'],
+    badge:'Premium · Empfohlen', badgeCls:'badge-amber', premium:true }
+];
 const SYSTEMS = [
   {m:12,kwp:5.6,s0:11314,s1:12314,eco:12314},
   {m:13,kwp:6.1,s0:11614,s1:12614,eco:12614},
@@ -1093,6 +1123,7 @@ const ANNUAL_INCREASE = 0.03;
 // ══════════════════════════════════════════════════════
 const state = {
   step: 0,
+  moduleType: 'aiko',
   modules: 20,
   consumption: 6000,
   inverter: null,
@@ -1140,13 +1171,20 @@ function fmtD(n,d) {
 function getSystem() {
   return SYSTEMS[state.modules - 12] || SYSTEMS[0];
 }
-function getKwp() { return getSystem().kwp; }
+function getModuleWp() {
+  const mt = MODULE_TYPES.find(t => t.id === state.moduleType);
+  return mt ? mt.wp : 470;
+}
+function getKwp() { return state.modules * getModuleWp() / 1000; }
 function getBasePrice() {
   const s = getSystem();
-  if (state.inverter === 'S0') return s.s0;
-  if (state.inverter === 'S1') return s.s1;
-  if (state.inverter === 'EcoFlow') return s.eco;
-  return s.s0;
+  let price;
+  if (state.inverter === 'S0') price = s.s0;
+  else if (state.inverter === 'S1') price = s.s1;
+  else if (state.inverter === 'EcoFlow') price = s.eco;
+  else price = s.s0;
+  if (state.moduleType === 'trina') price -= state.modules * 30;
+  return price;
 }
 function getBattery() {
   if (!state.inverter || state.batteryIdx === null || state.batteryIdx < 0) return null;
@@ -1182,7 +1220,6 @@ function getAddonsTotal() {
   if (a.sat_move) total += 300;
   if (a.meter_uncal) total += 150;
   if (a.meter_cal) total += 300;
-  if (a.trina) total += state.modules * (-30);
   return total;
 }
 
@@ -1214,7 +1251,7 @@ function getPayback() {
   const eva = prod > 0 ? Math.min(1, eigenverbrauchKwh / prod) : 0;
   const feedIn = prod * (1 - eva) * w.einspeiseverguetung;
   let cum = 0, price = w.strompreis;
-  for (let y = 1; y <= 25; y++) {
+  for (let y = 1; y <= 20; y++) {
     cum += eigenverbrauchKwh * price + feedIn;
     if (cum >= inv) return y;
     price *= (1 + w.preiserhoehung / 100);
@@ -1236,6 +1273,24 @@ function get20YearSavings() {
   return total;
 }
 
+function getEnergyFlows() {
+  const consumption = state.consumption;
+  const prod = getAnnualProd();
+  const ss = getSelfSuff();
+  const battKwh = getBatteryKwh();
+  const eigenverbrauch = Math.min(prod, consumption * ss);
+  const directUse = Math.min(eigenverbrauch, consumption * SELF_SUFF_BASE);
+  const batteryUse = eigenverbrauch - directUse;
+  const eva = prod > 0 ? Math.min(1, eigenverbrauch / prod) : 0;
+  const gridFeedIn = prod * (1 - eva);
+  const gridPurchase = consumption - eigenverbrauch;
+  return {
+    production: prod, consumption, directUse, batteryCharge: batteryUse,
+    batteryDischarge: batteryUse, gridFeedIn, gridPurchase,
+    eigenverbrauch, eigenverbrauchsanteil: eva, autarkiegrad: ss, battKwh
+  };
+}
+
 // ══════════════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════════════
@@ -1250,6 +1305,7 @@ function render() {
   renderStep4();
   renderStep5();
   renderStep6();
+  renderStep7();
   // Show/hide panels
   document.querySelectorAll('.step-panel').forEach((p, i) => {
     if (i === state.step) {
@@ -1264,8 +1320,8 @@ function render() {
 }
 
 function renderStepNav() {
-  const labels = ['Start','Größe','Wechselrichter','Speicher','Extras','Übersicht','WKB'];
-  const totalSteps = state.step >= 6 ? 7 : 6;
+  const labels = ['Start','Module','Größe','Wechselrichter','Speicher','Extras','Übersicht','WKB'];
+  const totalSteps = state.step >= 7 ? 8 : 7;
   let html = '';
   for (let i = 0; i < totalSteps; i++) {
     const cls = i < state.step ? 'done' : (i === state.step ? 'active' : '');
@@ -1287,12 +1343,17 @@ function renderFooter() {
   document.getElementById('footerInfo').textContent = '© Winkel Photovoltaik GmbH — Alle Rechte vorbehalten.';
   document.getElementById('btnPrev').disabled = state.step === 0;
   const btn = document.getElementById('btnNext');
-  btn.style.display = state.step >= 5 ? 'none' : '';
+  btn.style.display = state.step >= 6 ? 'none' : '';
   btn.textContent = state.step === 0 ? 'Weiter zur Konfiguration' : 'Weiter';
   btn.disabled = (state.step === 3 && !state.inverter);
 }
 
-// Wiederverwendbarer Verbrauchs-Slider (Step 0 + Step 6)
+// Wiederverwendbarer Verbrauchs-Slider (Step 0 + Step 7)
+let _step0Timer = null;
+function debouncedStep0() {
+  clearTimeout(_step0Timer);
+  _step0Timer = setTimeout(() => renderStep0(), 180);
+}
 function consumptionSlider(label, key, value, max, step, prefix) {
   const pct = Math.min(100, Math.round(value / max * 100));
   const id = prefix + '_' + key;
@@ -1300,13 +1361,13 @@ function consumptionSlider(label, key, value, max, step, prefix) {
     <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.35rem">
       <label style="font-size:0.88rem;color:var(--text2);flex:1">${label}</label>
       <input type="number" id="${id}_num" value="${value}" step="${step}" min="0" max="${max}"
-        oninput="setWkb('${key}', parseInt(this.value)||0); if(document.getElementById('${id}_rng')) document.getElementById('${id}_rng').value=this.value; renderStep0()"
+        oninput="setWkb('${key}', parseInt(this.value)||0); if(document.getElementById('${id}_rng')) document.getElementById('${id}_rng').value=this.value; debouncedStep0()"
         style="width:80px;padding:0.3rem 0.5rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:0.9rem;text-align:right;font-weight:600">
       <span style="font-size:0.72rem;color:var(--text3);min-width:40px">kWh</span>
     </div>
     <input type="range" id="${id}_rng" min="0" max="${max}" value="${value}" step="${step}"
       style="width:100%;--pct:${pct}%"
-      oninput="document.getElementById('${id}_num').value=this.value; setWkb('${key}', parseInt(this.value)||0); this.style.setProperty('--pct', Math.round(this.value/${max}*100)+'%'); renderStep0()">
+      oninput="document.getElementById('${id}_num').value=this.value; setWkb('${key}', parseInt(this.value)||0); this.style.setProperty('--pct', Math.round(this.value/${max}*100)+'%')">
   </div>`;
 }
 
@@ -1360,14 +1421,14 @@ function renderStep0() {
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.8rem;padding:0.4rem 0">
           <label style="font-size:0.95rem;color:var(--text);flex:1">Arbeitspreis pro kWh (brutto)</label>
           <input type="number" value="${strompreis.toFixed(2)}" step="0.01" min="0.05" max="2"
-            oninput="setWkb('strompreis', parseFloat(this.value)||0.42); renderStep0()"
+            oninput="setWkb('strompreis', parseFloat(this.value)||0.42); debouncedStep0()"
             style="${inputStyle}">
           <span style="font-size:0.82rem;color:var(--text3);min-width:55px">€/kWh</span>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.8rem;padding:0.4rem 0;border-top:1px solid var(--border)">
           <label style="font-size:0.95rem;color:var(--text);flex:1">Strompreissteigerung</label>
           <input type="number" value="${steigerung.toFixed(2)}" step="0.5" min="0" max="20"
-            oninput="setWkb('preiserhoehung', parseFloat(this.value)||6); renderStep0()"
+            oninput="setWkb('preiserhoehung', parseFloat(this.value)||6); debouncedStep0()"
             style="${inputStyle}">
           <span style="font-size:0.82rem;color:var(--text3);min-width:55px">% p.a.</span>
         </div>
@@ -1415,6 +1476,54 @@ function renderStep0() {
 }
 
 function renderStep1() {
+  const el = document.getElementById('step1Content');
+  if (!el) return;
+  let html = '';
+  MODULE_TYPES.forEach(mt => {
+    const sel = state.moduleType === mt.id;
+    const specRows = [
+      ['Leistung', mt.wp + ' Wp'],
+      ['Effizienz', mt.efficiency],
+      ['Zelltyp', mt.cells],
+      ['Produktgarantie', mt.warranty + ' Jahre'],
+      ['Maße', mt.dimensions],
+      ['Gewicht', mt.weight],
+    ];
+    const ribbon = mt.premium ? `<div class="inv-ribbon" style="top:12px;right:-28px">Empfohlen</div>` : '';
+    const priceNote = mt.premium
+      ? `<div style="font-size:0.78rem;color:var(--text2);margin-top:0.5rem">Premium-Qualität für maximalen Ertrag</div>`
+      : `<div style="font-size:0.78rem;color:var(--text2);margin-top:0.5rem">30 € pro Modul günstiger</div>`;
+    html += `<div class="card ${sel ? 'selected' : ''}" onclick="selectModuleType('${mt.id}')" style="overflow:hidden;position:relative">
+      ${ribbon}
+      <div style="height:120px;background:${mt.premium ? 'linear-gradient(135deg,var(--accent-dim),rgba(245,158,11,0.05))' : 'linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.03))'};border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;flex-direction:column;gap:0.3rem">
+        <div style="font-size:2.5rem">&#9652;</div>
+        <div style="font-size:0.72rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Modulbild-Platzhalter</div>
+      </div>
+      <div class="card-badge ${mt.badgeCls}">${mt.badge}</div>
+      <div class="card-title">${mt.name}</div>
+      <div class="card-desc">${mt.model}</div>
+      <table style="width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.82rem">
+        ${specRows.map(([k,v]) => `<tr>
+          <td style="padding:0.3rem 0;color:var(--text3)">${k}</td>
+          <td style="padding:0.3rem 0;text-align:right;font-weight:600;color:var(--text)">${v}</td>
+        </tr>`).join('')}
+      </table>
+      <ul class="card-features">
+        ${mt.advantages.map(a => `<li>${a}</li>`).join('')}
+      </ul>
+      ${priceNote}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function selectModuleType(id) {
+  if (state.moduleType === id) { nextStep(); return; }
+  state.moduleType = id;
+  render();
+}
+
+function renderStep2() {
   const s = getSystem();
   const pct = ((state.modules - 12) / (66 - 12)) * 100;
   const slider = document.getElementById('moduleSlider');
@@ -1422,15 +1531,15 @@ function renderStep1() {
   slider.value = state.modules;
   const inp = document.getElementById('moduleCountInput');
   if (inp && document.activeElement !== inp) inp.value = state.modules;
-  document.getElementById('kwpDisplay').textContent = fmtD(s.kwp, 1).replace('.', ',');
+  document.getElementById('kwpDisplay').textContent = fmtD(getKwp(), 1).replace('.', ',');
   const w = state.wkb;
-  const btnStyle = (active) => `flex:1;padding:0.65rem 0;border-radius:var(--radius-sm);border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--bg-secondary)'};color:${active?'#fff':'var(--text2)'};font-size:0.9rem;font-weight:${active?'700':'500'};cursor:pointer;transition:var(--transition)`;
+  const btnStyle = (active) => `flex:1;padding:0.65rem 0;border-radius:var(--radius-sm);border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--bg-secondary)'};color:${active?'var(--bg-primary)':'var(--text2)'};font-size:0.9rem;font-weight:${active?'700':'500'};cursor:pointer;transition:var(--transition)`;
 
   let finDetails = '';
   if (w.finActive) {
     const hasPrices = !!state.inverter;
     const fin = hasPrices ? calcFinancing() : null;
-    const lBtn = (y) => `<button onclick="setWkb('finLaufzeit',${y})" style="padding:0.35rem 0.7rem;border-radius:var(--radius-sm);border:1px solid ${w.finLaufzeit===y?'var(--accent)':'var(--border)'};background:${w.finLaufzeit===y?'var(--accent)':'var(--bg-tertiary)'};color:${w.finLaufzeit===y?'#fff':'var(--text2)'};font-size:0.82rem;font-weight:${w.finLaufzeit===y?'700':'500'};cursor:pointer">${y} J.</button>`;
+    const lBtn = (y) => `<button onclick="setWkb('finLaufzeit',${y})" style="padding:0.35rem 0.7rem;border-radius:var(--radius-sm);border:1px solid ${w.finLaufzeit===y?'var(--accent)':'var(--border)'};background:${w.finLaufzeit===y?'var(--accent)':'var(--bg-tertiary)'};color:${w.finLaufzeit===y?'var(--bg-primary)':'var(--text2)'};font-size:0.82rem;font-weight:${w.finLaufzeit===y?'700':'500'};cursor:pointer">${y} J.</button>`;
     finDetails = `
       <div style="margin-top:1rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:0.85rem">
 
@@ -1466,17 +1575,18 @@ function renderStep1() {
       </div>`;
   }
 
-  document.getElementById('step1PayBtns').innerHTML = `
+  document.getElementById('step2PayBtns').innerHTML = `
     <button style="${btnStyle(!w.finActive)}" onclick="setWkb('finActive',false)">Barzahlung</button>
     <button style="${btnStyle(w.finActive)}"  onclick="setWkb('finActive',true)">Finanzierung</button>
   `;
-  const detailEl = document.getElementById('step1FinDetails');
+  const detailEl = document.getElementById('step2FinDetails');
   if (detailEl) detailEl.innerHTML = finDetails;
 }
 
-function renderStep2() {
+function renderStep3() {
   const s = getSystem();
-  const prices = {S0: s.s0, S1: s.s1, EcoFlow: s.eco};
+  const trinaDelta = state.moduleType === 'trina' ? state.modules * 30 : 0;
+  const prices = {S0: s.s0 - trinaDelta, S1: s.s1 - trinaDelta, EcoFlow: s.eco - trinaDelta};
 
   // val: true=✓  false=✗  string=text  {w:html}=raw html  'opt'=grau-kursiv
   // best: 'eco'|'S1'|'S0'|null  → Akzentfarbe auf Gewinner-Spalte
@@ -1534,6 +1644,19 @@ function renderStep2() {
   const hdr = (id, name, isEco) => {
     const sel = state.inverter === id;
     const p = prices[id];
+    const huaweiSvg = `<svg viewBox="0 0 360 80" style="height:32px;width:auto" xmlns="http://www.w3.org/2000/svg">
+      <g fill="var(--text)">
+        <path d="M45.5 2C42.3 6.8 40 13 40 20c0 12.5 7 22 14.5 28.5C47.3 42 40 32.5 40 20c0-7 2.3-13.2 5.5-18z" fill="#e4002b"/>
+        <path d="M34.5 2C37.7 6.8 40 13 40 20c0 12.5-7 22-14.5 28.5C32.7 42 40 32.5 40 20c0-7-2.3-13.2-5.5-18z" fill="#e4002b"/>
+        <path d="M40 55c-5-3-8.5-7.5-10-12.5C33 48 36.5 52 40 55z" fill="#e4002b"/>
+        <path d="M40 55c5-3 8.5-7.5 10-12.5C47 48 43.5 52 40 55z" fill="#e4002b"/>
+        <text x="70" y="50" font-family="Arial,Helvetica,sans-serif" font-size="38" font-weight="700" letter-spacing="6" fill="var(--text)">HUAWEI</text>
+      </g>
+    </svg>`;
+    const ecoflowSvg = `<svg viewBox="0 0 300 60" style="height:28px;width:auto" xmlns="http://www.w3.org/2000/svg">
+      <text x="10" y="44" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="800" letter-spacing="1" fill="var(--text)">EcoFlow</text>
+    </svg>`;
+    const logoHtml = `<div class="inv-logo-area">${isEco ? ecoflowSvg : huaweiSvg}</div>`;
     if (w.finActive) {
       const mo = moCalc(p);
       const moMin = moCalc(minPrice);
@@ -1543,6 +1666,7 @@ function renderStep2() {
       return `<div class="inv-hdr ${sel?'selected':''} ${isEco?'inv-eco':''}" onclick="selectInverter('${id}')">
         ${isEco ? '<div class="inv-ribbon">Empfohlen</div>' : ''}
         ${sel ? '<div class="inv-sel-badge">✓ Ausgewählt</div>' : ''}
+        ${logoHtml}
         <div class="inv-hdr-name">${name}</div>
         <div style="font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1;margin:0.3rem 0 0.15rem">${fmtN(mo)} € <span style="font-size:0.75rem;font-weight:500;color:var(--text2)">/ Monat</span></div>
         ${diffStr}
@@ -1555,6 +1679,7 @@ function renderStep2() {
       return `<div class="inv-hdr ${sel?'selected':''} ${isEco?'inv-eco':''}" onclick="selectInverter('${id}')">
         ${isEco ? '<div class="inv-ribbon">Empfohlen</div>' : ''}
         ${sel ? '<div class="inv-sel-badge">✓ Ausgewählt</div>' : ''}
+        ${logoHtml}
         <div class="inv-hdr-name">${name}</div>
         <div style="font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1;margin:0.3rem 0 0.15rem">${fmt(p)}</div>
         ${diffStr}
@@ -1589,7 +1714,7 @@ function renderStep2() {
       <button onclick="changeModules(-1)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" ${state.modules<=12?'disabled':''}>−</button>
       <div style="text-align:center;min-width:90px">
         <div style="font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1">${state.modules}</div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:0.2rem">Module · ${fmtD(s.kwp,1)} kWp</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:0.2rem">Module · ${fmtD(getKwp(),1)} kWp</div>
       </div>
       <button onclick="changeModules(+1)" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" ${state.modules>=66?'disabled':''}>+</button>
       <div style="font-size:0.78rem;color:var(--text3);text-align:left;line-height:1.6;border-left:1px solid var(--border);padding-left:1rem;margin-left:0.2rem">
@@ -1616,15 +1741,15 @@ function renderStep2() {
   `;
 }
 
-function renderStep3() {
+function renderStep4() {
   if (!state.inverter) {
     const el = document.getElementById('batteryCards');
     if (el) el.innerHTML = `
       <div style="text-align:center;padding:3rem 1.5rem">
         <div style="font-size:2.5rem;margin-bottom:1rem;opacity:0.6">⚡</div>
         <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:0.5rem">Bitte wählen Sie zuerst einen Wechselrichter aus</div>
-        <div style="font-size:0.85rem;color:var(--text3);max-width:400px;margin:0 auto">Gehen Sie zurück zu Schritt 3 und wählen Sie einen Wechselrichter, um die passenden Speicheroptionen zu sehen.</div>
-        <button onclick="goToStep(2)" style="margin-top:1.2rem;padding:0.6rem 1.5rem;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:0.9rem;cursor:pointer">← Zurück zum Wechselrichter</button>
+        <div style="font-size:0.85rem;color:var(--text3);max-width:400px;margin:0 auto">Gehen Sie zurück zum Wechselrichter-Schritt und wählen Sie einen Wechselrichter, um die passenden Speicheroptionen zu sehen.</div>
+        <button onclick="goToStep(3)" style="margin-top:1.2rem;padding:0.6rem 1.5rem;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:0.9rem;cursor:pointer">← Zurück zum Wechselrichter</button>
       </div>`;
     return;
   }
@@ -1727,33 +1852,37 @@ function renderStep3() {
   });
   document.getElementById('batteryCards').innerHTML = html;
 
-  // Drei-Stufen-Pfeil
-  const hasBattery = state.batteryIdx !== null && state.batteryIdx >= 0;
-  const isEcoFlow = state.inverter === 'EcoFlow';
-  // active stage: 1 = kein Speicher, 2 = Speicher (Huawei), 3 = EcoFlow (netzladefähig)
-  const activeStage = !hasBattery ? 1 : (!isEcoFlow ? 2 : 3);
-  const stages = [
-    { num: '01', icon: '☀️', pct: '≈ 30 %', desc: 'Eigenversorgung nur mit PV-Modulen' },
-    { num: '02', icon: '🔋', pct: '≈ 70–80 %', desc: 'Eigenversorgung mit Batteriespeicher' },
-    { num: '03', icon: '⚡', pct: 'bis 100 %', desc: 'Eigenversorgung mit Laden aus dem Netz' },
-  ];
-  document.getElementById('stageArrows').innerHTML = `
-    <div class="stage-arrows">
-      ${stages.map((s, i) => {
-        const n = i + 1;
-        const cls = n < activeStage ? 'done' : (n === activeStage ? 'active' : '');
-        return `<div class="stage-arrow ${cls}">
-          <span class="stage-num">${s.num}</span>
-          <span class="stage-icon">${s.icon}</span>
-          <span class="stage-pct">${s.pct}</span>
-          <span class="stage-desc">${s.desc}</span>
-        </div>`;
-      }).join('')}
-    </div>
-  `;
+  // ── Energiefluss-Visualisierung ──
+  const fp = document.getElementById('energyFlowPanel');
+  if (fp) {
+    const f = getEnergyFlows();
+    fp.innerHTML = `
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:1.5rem">
+      <div style="font-size:0.8rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1rem">Energiefluss Ihrer Anlage — Jahresübersicht</div>
+      <div class="eflow-kpi">
+        <div class="eflow-kpi-box">
+          <div class="eflow-kpi-num" style="color:var(--green)">${Math.round(f.autarkiegrad * 100)} %</div>
+          <div class="eflow-kpi-label">Autarkiegrad</div>
+        </div>
+        <div class="eflow-kpi-box">
+          <div class="eflow-kpi-num" style="color:var(--accent)">${Math.round(f.eigenverbrauchsanteil * 100)} %</div>
+          <div class="eflow-kpi-label">Eigenverbrauchsanteil</div>
+        </div>
+        <div class="eflow-kpi-box">
+          <div class="eflow-kpi-num" style="color:var(--blue)">${fmtN(Math.round(f.gridFeedIn))} kWh</div>
+          <div class="eflow-kpi-label">Netzeinspeisung</div>
+        </div>
+        <div class="eflow-kpi-box">
+          <div class="eflow-kpi-num" style="color:var(--red)">${fmtN(Math.round(f.gridPurchase))} kWh</div>
+          <div class="eflow-kpi-label">Netzbezug</div>
+        </div>
+      </div>
+      ${buildEnergyFlowSVG(f)}
+    </div>`;
+  }
 }
 
-function renderStep4() {
+function renderStep5() {
   const hasBattery = state.batteryIdx !== null && state.batteryIdx >= 0;
   const a = state.addons;
   const w = state.wkb;
@@ -1818,7 +1947,6 @@ function renderStep4() {
   html += addonToggle('sat_move', 'SAT-Schüssel versetzen', addonPriceStr(300), a.sat_move);
   html += addonToggle('meter_cal', 'Geeichter Zähler', addonPriceStr(300), a.meter_cal);
   html += addonToggle('meter_uncal', 'Ungeeichter Unterzähler', addonPriceStr(150), a.meter_uncal);
-  html += addonToggle('trina', `Trina 455Wp statt AIKO 3S+ (${state.modules} Module)`, `${fmtN(state.modules * 30)} € Rabatt`, a.trina, true);
   html += `</div>`;
 
   document.getElementById('addonsContainer').innerHTML = html;
@@ -1856,7 +1984,7 @@ function addonCounter(id, name, priceText, val, priceRight) {
   </div>`;
 }
 
-function renderStep5() {
+function renderStep6() {
   if (!state.inverter) return;
   const s = getSystem();
   const inv = INVERTERS.find(i => i.id === state.inverter);
@@ -1864,7 +1992,8 @@ function renderStep5() {
   const a = state.addons;
   let rows = [];
 
-  rows.push({l: `${state.modules}× AIKO NEOSTAR 3S+ (${fmtD(s.kwp,1)} kWp)`, p: getBasePrice()});
+  const mt = MODULE_TYPES.find(t => t.id === state.moduleType) || MODULE_TYPES[1];
+  rows.push({l: `${state.modules}× ${mt.name} ${mt.model} (${fmtD(getKwp(),1)} kWp)`, p: getBasePrice()});
   rows.push({l: `Wechselrichter: ${inv.name}`, p: 0, cls: ''});
 
   if (bat) {
@@ -1884,7 +2013,6 @@ function renderStep5() {
   if (a.sat_move) rows.push({l: 'SAT-Schüssel versetzen', p: 300});
   if (a.meter_uncal) rows.push({l: 'Ungeeichter Unterzähler', p: 150});
   if (a.meter_cal) rows.push({l: 'Geeichter Zähler', p: 300});
-  if (a.trina) rows.push({l: `Trina-Tausch (${state.modules} Module)`, p: -(state.modules * 30), cls: 'promo'});
 
   const total = getTotalPrice();
   const w = state.wkb;
@@ -1911,8 +2039,8 @@ function renderStep5() {
   document.getElementById('summaryMonthly').innerHTML = `
     <div class="summary-monthly-box">
       <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
-        <button onclick="setWkb('finActive',false);renderStep5()" style="flex:1;padding:0.45rem 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:${!w.finActive?'var(--accent)':'var(--bg-tertiary)'};color:${!w.finActive?'#fff':'var(--text2)'};font-size:0.8rem;font-weight:600;cursor:pointer">Barzahlung</button>
-        <button onclick="setWkb('finActive',true);renderStep5()" style="flex:1;padding:0.45rem 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:${w.finActive?'var(--accent)':'var(--bg-tertiary)'};color:${w.finActive?'#fff':'var(--text2)'};font-size:0.8rem;font-weight:600;cursor:pointer">Finanzierung</button>
+        <button onclick="setWkb('finActive',false);renderStep6()" style="flex:1;padding:0.45rem 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:${!w.finActive?'var(--accent)':'var(--bg-tertiary)'};color:${!w.finActive?'var(--bg-primary)':'var(--text2)'};font-size:0.8rem;font-weight:600;cursor:pointer">Barzahlung</button>
+        <button onclick="setWkb('finActive',true);renderStep6()" style="flex:1;padding:0.45rem 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:${w.finActive?'var(--accent)':'var(--bg-tertiary)'};color:${w.finActive?'var(--bg-primary)':'var(--text2)'};font-size:0.8rem;font-weight:600;cursor:pointer">Finanzierung</button>
       </div>
       <div class="smb-label">${w.finActive ? 'Monatliche Finanzierungsrate' : 'Monatliche Rate'}</div>
       <div class="smb-rate">${fmtN(displayMonthly)} €</div>
@@ -1922,21 +2050,21 @@ function renderStep5() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
           <span style="font-size:0.78rem;color:var(--text3)">Betrag</span>
           <input type="text" value="${fmtN(finBetragVal)}"
-            onblur="const v=parseInt(this.value.replace(/\\./g,''))||getTotalPrice();setWkb('finBetrag',Math.max(10000,v));renderStep5()"
+            onblur="const v=parseInt(this.value.replace(/\\./g,''))||getTotalPrice();setWkb('finBetrag',Math.max(10000,v));renderStep6()"
             style="width:90px;padding:0.3rem 0.5rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.82rem;text-align:right;font-weight:600;font-family:inherit">
           <span style="font-size:0.72rem;color:var(--text3)">€</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
           <span style="font-size:0.78rem;color:var(--text3)">Laufzeit</span>
           <div style="display:flex;gap:0.3rem">
-            ${[10,15,20].map(y=>`<button onclick="setWkb('finLaufzeit',${y});renderStep5()" style="padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border);background:${w.finLaufzeit===y?'var(--accent)':'var(--bg-tertiary)'};color:${w.finLaufzeit===y?'#fff':'var(--text2)'};font-size:0.75rem;cursor:pointer">${y}J.</button>`).join('')}
+            ${[10,15,20].map(y=>`<button onclick="setWkb('finLaufzeit',${y});renderStep6()" style="padding:0.25rem 0.5rem;border-radius:4px;border:1px solid var(--border);background:${w.finLaufzeit===y?'var(--accent)':'var(--bg-tertiary)'};color:${w.finLaufzeit===y?'var(--bg-primary)':'var(--text2)'};font-size:0.75rem;cursor:pointer">${y}J.</button>`).join('')}
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
           <span style="font-size:0.78rem;color:var(--text3)">Zinssatz</span>
           <div style="display:flex;align-items:center;gap:0.3rem">
             <input type="number" value="${w.finZinssatz}" step="0.1" min="0" max="20"
-              onchange="setWkb('finZinssatz',parseFloat(this.value)||5);renderStep5()"
+              onchange="setWkb('finZinssatz',parseFloat(this.value)||5);renderStep6()"
               style="width:60px;padding:0.3rem 0.5rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.82rem;text-align:right;font-weight:600;font-family:inherit">
             <span style="font-size:0.72rem;color:var(--text3)">% p.a.</span>
           </div>
@@ -2066,12 +2194,82 @@ function setWkb(key, value) {
     const w = state.wkb;
     state.consumption = (w.consumptionBase !== null ? w.consumptionBase : 6000) + (w.consumptionEV||0) + (w.consumptionHP||0) + (w.consumptionKlima||0) + (w.consumptionSonstig||0);
   }
-  renderStep1();
-  if (state.step === 5) renderStep5();
+  renderStep2();
+  if (state.step === 6) renderStep6();
   renderLivePrice();
-  // Debounce renderStep6 um Fokus-Verlust bei Tastatureingabe zu vermeiden
+  // Debounce renderStep7 um Fokus-Verlust bei Tastatureingabe zu vermeiden
   clearTimeout(_wkbTimer);
-  _wkbTimer = setTimeout(() => renderStep6(), 150);
+  _wkbTimer = setTimeout(() => renderStep7(), 150);
+}
+
+function buildEnergyFlowSVG(f) {
+  const W = 620, H = 320;
+  const cA = cssVar('--accent');
+  const cB = cssVar('--blue');
+  const cG = cssVar('--green');
+  const cR = cssVar('--red');
+  const cT3 = cssVar('--text3');
+  const cTxt = cssVar('--text');
+  const maxFlow = Math.max(f.directUse, f.batteryCharge, f.gridFeedIn, f.gridPurchase, 1);
+  const sw = v => Math.max(2, Math.round(v / maxFlow * 26));
+
+  // Node positions
+  const pvX = 60, pvY = 90;
+  const batX = 310, batY = 210;
+  const houseX = 560, houseY = 140;
+  const gridX = 60, gridY = 270;
+  const feedX = 560, feedY = 280;
+
+  // Bezier paths
+  function bezier(x1,y1,x2,y2) {
+    const mx = (x1+x2)/2;
+    return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  }
+
+  const paths = [];
+  // 1. PV → Household (direct)
+  if (f.directUse > 0)
+    paths.push({d: bezier(pvX+40,pvY, houseX-40,houseY-20), w: sw(f.directUse), c: cA, label: fmtN(Math.round(f.directUse))+' kWh', lx: 310, ly: pvY-20, title: 'Direktverbrauch'});
+  // 2. PV → Battery
+  if (f.batteryCharge > 0)
+    paths.push({d: bezier(pvX+40,pvY+20, batX-30,batY-15), w: sw(f.batteryCharge), c: cB, label: fmtN(Math.round(f.batteryCharge))+' kWh', lx: 170, ly: 170, title: 'Speicherladung'});
+  // 3. Battery → Household
+  if (f.batteryDischarge > 0)
+    paths.push({d: bezier(batX+30,batY-15, houseX-40,houseY+15), w: sw(f.batteryDischarge), c: cB, label: fmtN(Math.round(f.batteryDischarge))+' kWh', lx: 440, ly: 195, title: 'Speicherentladung'});
+  // 4. PV → Grid (feed-in)
+  if (f.gridFeedIn > 0)
+    paths.push({d: bezier(pvX+40,pvY+40, feedX-40,feedY), w: sw(f.gridFeedIn), c: cG, label: fmtN(Math.round(f.gridFeedIn))+' kWh', lx: 350, ly: feedY+5, title: 'Einspeisung'});
+  // 5. Grid → Household
+  if (f.gridPurchase > 0)
+    paths.push({d: bezier(gridX+40,gridY, houseX-40,houseY+40), w: sw(f.gridPurchase), c: cR, label: fmtN(Math.round(f.gridPurchase))+' kWh', lx: 310, ly: gridY+20, title: 'Netzbezug'});
+
+  const pathsSvg = paths.map(p =>
+    `<path d="${p.d}" fill="none" stroke="${p.c}" stroke-width="${p.w}" class="energy-flow-path" stroke-opacity="0.7"/>`
+  ).join('');
+  const labelsSvg = paths.map(p =>
+    `<text x="${p.lx}" y="${p.ly}" fill="${p.c}" font-size="10" font-weight="700" text-anchor="middle">${p.label}</text>
+     <text x="${p.lx}" y="${p.ly+12}" fill="${cT3}" font-size="8" text-anchor="middle">${p.title}</text>`
+  ).join('');
+
+  // Node icons/boxes
+  const nodeBox = (x,y,icon,label,sub) =>
+    `<rect x="${x-32}" y="${y-24}" width="64" height="48" rx="10" fill="var(--bg-tertiary)" stroke="var(--border)" stroke-width="1"/>
+     <text x="${x}" y="${y+2}" fill="${cTxt}" font-size="18" text-anchor="middle" dominant-baseline="middle">${icon}</text>
+     <text x="${x}" y="${y+35}" fill="${cT3}" font-size="9" font-weight="600" text-anchor="middle">${label}</text>
+     <text x="${x}" y="${y+47}" fill="${cT3}" font-size="8" text-anchor="middle">${sub}</text>`;
+
+  const nodes = [
+    nodeBox(pvX, pvY, '\u2600\uFE0F', 'PV-Anlage', fmtN(Math.round(f.production))+' kWh'),
+    nodeBox(houseX, houseY, '\uD83C\uDFE0', 'Haushalt', fmtN(Math.round(f.consumption))+' kWh'),
+    nodeBox(gridX, gridY, '\u26A1', 'Stromnetz', ''),
+  ];
+  if (f.battKwh > 0) {
+    nodes.push(nodeBox(batX, batY, '\uD83D\uDD0B', 'Speicher', fmtD(f.battKwh,1)+' kWh'));
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
+    ${pathsSvg}${labelsSvg}${nodes.join('')}
+  </svg>`;
 }
 
 function cssVar(name) {
@@ -2127,7 +2325,7 @@ function buildWkbChart(rows, investment) {
     +beDot+yLabs+xLabs+'</svg>';
 }
 
-function renderStep6() {
+function renderStep7() {
   const el = document.getElementById('wkbContent');
   if (!el || !state.inverter) return;
 
@@ -2141,8 +2339,8 @@ function renderStep6() {
   const einspeisungJährlich = Math.round(effProd * (1 - eva) * w.einspeiseverguetung);
   const co2_20_t = (effProd * CO2_FACTOR * 20 / 1000).toFixed(1);
 
-  // ── Kapitalkonto-Stand: 25-Jahres-Vergleich ──
-  let ohnePV25 = 0, restStrom25 = 0, einspeisungGesamt25 = 0;
+  // ── Kapitalkonto-Stand: 20-Jahres-Vergleich ──
+  let ohnePV20 = 0, restStrom20 = 0, einspeisungGesamt20 = 0;
   let sp = w.strompreis;
   const eigenKwh = totalConsumption * effSS;
   const einspeisungJ = effProd * (1 - eva) * w.einspeiseverguetung;
@@ -2152,27 +2350,27 @@ function renderStep6() {
   const cHP = w.consumptionHP || 0;
   const cKlima = w.consumptionKlima || 0;
   const cSonstig = w.consumptionSonstig || 0;
-  let ohnePV25_base=0, ohnePV25_ev=0, ohnePV25_hp=0, ohnePV25_klima=0, ohnePV25_sonstig=0;
-  for (let y = 1; y <= 25; y++) {
-    ohnePV25 += totalConsumption * sp;
-    ohnePV25_base += cBase * sp;
-    ohnePV25_ev += cEV * sp;
-    ohnePV25_hp += cHP * sp;
-    ohnePV25_klima += cKlima * sp;
-    ohnePV25_sonstig += cSonstig * sp;
-    restStrom25 += totalConsumption * (1 - effSS) * sp;
-    if (y <= 20) einspeisungGesamt25 += einspeisungJ;
+  let ohnePV20_base=0, ohnePV20_ev=0, ohnePV20_hp=0, ohnePV20_klima=0, ohnePV20_sonstig=0;
+  for (let y = 1; y <= 20; y++) {
+    ohnePV20 += totalConsumption * sp;
+    ohnePV20_base += cBase * sp;
+    ohnePV20_ev += cEV * sp;
+    ohnePV20_hp += cHP * sp;
+    ohnePV20_klima += cKlima * sp;
+    ohnePV20_sonstig += cSonstig * sp;
+    restStrom20 += totalConsumption * (1 - effSS) * sp;
+    einspeisungGesamt20 += einspeisungJ;
     sp *= (1 + w.preiserhoehung / 100);
   }
-  const mitPV25 = investment + restStrom25 - einspeisungGesamt25;
-  const ersparnis25 = ohnePV25 - mitPV25;
-  const verbrauch25kWh = totalConsumption * 25;
-  const monatVorteil25 = Math.round(ersparnis25 / 25 / 12);
+  const mitPV20 = investment + restStrom20 - einspeisungGesamt20;
+  const ersparnis20 = ohnePV20 - mitPV20;
+  const verbrauch20kWh = totalConsumption * 20;
+  const monatVorteil20 = Math.round(ersparnis20 / 20 / 12);
   // Zeitvergleich: Stromkosten heute / in 3J / in 6J
   const stromHeute = totalConsumption * w.strompreis / 12;
   const strom3J = totalConsumption * w.strompreis * Math.pow(1+w.preiserhoehung/100,3) / 12;
   const strom6J = totalConsumption * w.strompreis * Math.pow(1+w.preiserhoehung/100,6) / 12;
-  const pvRate = w.finActive ? calcFinancing().rate : Math.round(investment / (25*12));
+  const pvRate = w.finActive ? calcFinancing().rate : Math.round(investment / (20*12));
   // Reststrom aus Netz (Anteil der NICHT durch PV gedeckt wird) — steigt mit Strompreis
   const restAnteil = 1 - effSS; // z.B. 0.35 bei 65% Autarkie
   const restHeute = Math.round(totalConsumption * restAnteil * w.strompreis / 12);
@@ -2389,79 +2587,89 @@ function renderStep6() {
       </div>
     </div>
 
-    <!-- ═══ Kapitalkonto: 25-Jahres-Vergleich ═══ -->
+    <!-- ═══ Kapitalkonto: 20-Jahres-Vergleich ═══ -->
     ${(function(){
-      const pct = Math.max(5, Math.round(mitPV25 / ohnePV25 * 100));
-      const restNetto = Math.round(restStrom25 - einspeisungGesamt25);
+      const pct = Math.max(5, Math.round(mitPV20 / ohnePV20 * 100));
+      const restNetto = Math.round(restStrom20 - einspeisungGesamt20);
 
-      // ── SENEC-Style: Balken + Aufschlüsselung + Zeitvergleich ──
+      // ── Balken + Aufschlüsselung + Zeitvergleich ──
 
       // Zusammensetzungs-Zeilen für linke Tabelle (ohne PV)
-      let linksRows = `<tr><td>Stromkosten Haushalt</td><td style="text-align:right">${fmtN(Math.round(ohnePV25_base))} €</td></tr>`;
-      if (cEV > 0) linksRows += `<tr><td>Stromkosten E-Auto</td><td style="text-align:right">${fmtN(Math.round(ohnePV25_ev))} €</td></tr>`;
-      if (cHP > 0) linksRows += `<tr><td>Stromkosten Wärmepumpe</td><td style="text-align:right">${fmtN(Math.round(ohnePV25_hp))} €</td></tr>`;
-      if (cKlima > 0) linksRows += `<tr><td>Stromkosten Klimaanlage</td><td style="text-align:right">${fmtN(Math.round(ohnePV25_klima))} €</td></tr>`;
-      if (cSonstig > 0) linksRows += `<tr><td>Stromkosten Sonstiges</td><td style="text-align:right">${fmtN(Math.round(ohnePV25_sonstig))} €</td></tr>`;
+      let linksRows = `<tr><td>Stromkosten Haushalt</td><td style="text-align:right">${fmtN(Math.round(ohnePV20_base))} €</td></tr>`;
+      if (cEV > 0) linksRows += `<tr><td>Stromkosten E-Auto</td><td style="text-align:right">${fmtN(Math.round(ohnePV20_ev))} €</td></tr>`;
+      if (cHP > 0) linksRows += `<tr><td>Stromkosten Wärmepumpe</td><td style="text-align:right">${fmtN(Math.round(ohnePV20_hp))} €</td></tr>`;
+      if (cKlima > 0) linksRows += `<tr><td>Stromkosten Klimaanlage</td><td style="text-align:right">${fmtN(Math.round(ohnePV20_klima))} €</td></tr>`;
+      if (cSonstig > 0) linksRows += `<tr><td>Stromkosten Sonstiges</td><td style="text-align:right">${fmtN(Math.round(ohnePV20_sonstig))} €</td></tr>`;
 
       const result = `
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.5rem 1rem;margin:1.5rem 0">
-        <div style="font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:0.3rem">Machen Sie sich unabhängig von steigenden Strompreisen.</div>
-        <div style="font-size:0.75rem;color:var(--text3);margin-bottom:1.5rem">${fmtN(totalConsumption)} kWh/Jahr · ${w.preiserhoehung.toFixed(2)} % Strompreissteigerung p.a. · 25-Jahres-Vergleich</div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--text);margin-bottom:0.3rem">Machen Sie sich unabhängig von steigenden Strompreisen.</div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-bottom:1.5rem">${fmtN(totalConsumption)} kWh/Jahr · ${w.preiserhoehung.toFixed(2)} % Strompreissteigerung p.a. · 20-Jahres-Vergleich</div>
 
         <!-- Balken -->
-        <div style="display:flex;align-items:flex-end;justify-content:center;gap:4rem;height:300px;padding:0 2rem 0">
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:4rem;min-height:300px;padding:0 2rem 0">
           <!-- Ohne PV -->
           <div style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;flex:0 0 auto">
-            <div style="font-size:0.72rem;color:var(--text3);text-align:center;max-width:140px">Ist-Situation bei<br>Stromverbrauch in 25 Jahren</div>
-            <div style="width:140px;height:260px;background:linear-gradient(180deg,var(--accent),var(--accent-glow));border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative">
-              <div style="font-size:0.7rem;color:rgba(255,255,255,0.8);font-weight:600">&Sigma;</div>
-              <div style="font-size:1.6rem;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${fmtN(Math.round(ohnePV25))} €</div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--red);text-align:center;max-width:160px">ohne Photovoltaik<br><span style="font-size:0.68rem;font-weight:400;color:var(--text3)">Ihr Energieversorger in 20 Jahren</span></div>
+            <div style="width:160px;height:260px;background:linear-gradient(180deg,var(--red),rgba(239,68,68,0.6));border-radius:var(--radius-sm) var(--radius-sm) 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative;box-shadow:0 4px 20px rgba(239,68,68,0.2)">
+              <div style="font-size:0.7rem;color:rgba(255,255,255,0.8);font-weight:600">Stromkosten gesamt</div>
+              <div style="font-size:2rem;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.3)">${fmtN(Math.round(ohnePV20))} €</div>
             </div>
-            <div style="font-size:0.8rem;font-weight:700;color:var(--text);margin-top:0.2rem">Stromkosten in 25 Jahren</div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--red);margin-top:0.2rem">Reine Stromkosten</div>
+          </div>
+
+          <!-- Ersparnis-Pfeil -->
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.3rem;align-self:center">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.05em">Sie sparen</div>
+            <div style="font-size:1.8rem;font-weight:900;color:var(--green);line-height:1">${fmtN(Math.round(ersparnis20))} €</div>
+            <div style="font-size:0.7rem;color:var(--text3)">in 20 Jahren</div>
+            <div style="font-size:2rem;color:var(--green)">&#10132;</div>
           </div>
 
           <!-- Mit PV -->
           <div style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;flex:0 0 auto;justify-content:flex-end">
-            <div style="font-size:0.72rem;color:var(--text3);text-align:center;max-width:140px">Winkel PV-Lösung<br>in 25 Jahren</div>
-            <div style="width:140px;height:${Math.round(260 * pct / 100)}px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(180deg,var(--blue),var(--bg-tertiary))">
-              <div style="font-size:0.7rem;color:rgba(255,255,255,0.8);font-weight:600">&Sigma;</div>
-              <div style="font-size:1.4rem;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.3)">${fmtN(Math.round(mitPV25))} €</div>
+            <div style="font-size:0.75rem;font-weight:600;color:var(--green);text-align:center;max-width:160px">mit Ihrer Winkel PV-Anlage<br><span style="font-size:0.68rem;font-weight:400;color:var(--text3)">Investment + Reststrom − EEG</span></div>
+            <div style="width:160px;height:${Math.max(40, Math.round(260 * pct / 100))}px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(180deg,var(--green),rgba(16,185,129,0.5));box-shadow:0 4px 20px rgba(16,185,129,0.2)">
+              <div style="font-size:0.7rem;color:rgba(255,255,255,0.8);font-weight:600">Gesamtkosten</div>
+              <div style="font-size:1.6rem;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.3)">${fmtN(Math.round(mitPV20))} €</div>
             </div>
-            <div style="font-size:0.8rem;font-weight:700;color:var(--text);margin-top:0.2rem">Investition + Reststrom − EEG</div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--green);margin-top:0.2rem">Ihre smarte Lösung</div>
           </div>
+        </div>
+
+        <!-- Monatlicher Vorteil Highlight -->
+        <div style="margin:1.5rem auto 0;max-width:400px;text-align:center;padding:1rem 1.5rem;background:var(--green-dim);border:1px solid var(--green);border-radius:var(--radius);box-shadow:0 0 20px rgba(16,185,129,0.1)">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.2rem">Ihr monatlicher Vorteil</div>
+          <div style="font-size:2rem;font-weight:900;color:var(--green)">${monatVorteil20} € / Monat</div>
         </div>
 
         <!-- Zusammensetzungs-Tabellen -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
           <!-- Links: Ohne PV -->
           <div>
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:0.5rem;border-bottom:2px solid var(--border);padding-bottom:0.3rem">Zusammensetzung</div>
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:0.5rem;border-bottom:2px solid var(--border);padding-bottom:0.3rem">Ohne PV — Zusammensetzung</div>
             <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
               ${linksRows}
-              <tr style="border-top:2px solid var(--accent);font-weight:800;color:var(--accent)">
+              <tr style="border-top:2px solid var(--red);font-weight:800;color:var(--red)">
                 <td style="padding-top:0.4rem">Gesamtkosten</td>
-                <td style="text-align:right;padding-top:0.4rem">${fmtN(Math.round(ohnePV25))} €</td>
+                <td style="text-align:right;padding-top:0.4rem">${fmtN(Math.round(ohnePV20))} €</td>
               </tr>
             </table>
           </div>
           <!-- Rechts: Mit PV -->
           <div>
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:0.5rem;border-bottom:2px solid var(--border);padding-bottom:0.3rem">Zusammensetzung</div>
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:0.5rem;border-bottom:2px solid var(--border);padding-bottom:0.3rem">Mit PV — Zusammensetzung</div>
             <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
               <tr><td>Investitionskosten</td><td style="text-align:right">${fmtN(Math.round(investment))} €</td></tr>
-              <tr><td>Reststrom aus Netz (25 J.)</td><td style="text-align:right">${fmtN(Math.round(restStrom25))} €</td></tr>
-              <tr><td>Einnahmen aus EEG (20 J.)</td><td style="text-align:right;color:var(--green)">− ${fmtN(Math.round(einspeisungGesamt25))} €</td></tr>
-              <tr style="border-top:2px solid var(--blue);font-weight:800;color:var(--blue)">
+              <tr><td>Reststrom aus Netz (20 J.)</td><td style="text-align:right">${fmtN(Math.round(restStrom20))} €</td></tr>
+              <tr><td>Einnahmen aus EEG (20 J.)</td><td style="text-align:right;color:var(--green)">− ${fmtN(Math.round(einspeisungGesamt20))} €</td></tr>
+              <tr style="border-top:2px solid var(--green);font-weight:800;color:var(--green)">
                 <td style="padding-top:0.4rem">Gesamtkosten</td>
-                <td style="text-align:right;padding-top:0.4rem">${fmtN(Math.round(mitPV25))} €</td>
+                <td style="text-align:right;padding-top:0.4rem">${fmtN(Math.round(mitPV20))} €</td>
               </tr>
               <tr style="background:var(--green-dim);font-weight:800;color:var(--green)">
-                <td style="padding:0.4rem 0">Vorteil über 25 Jahre</td>
-                <td style="text-align:right;padding:0.4rem 0">${fmtN(Math.round(ersparnis25))} €</td>
-              </tr>
-              <tr style="background:var(--accent-dim);font-weight:800;color:var(--accent)">
-                <td style="padding:0.3rem 0">Ø monatlicher Vorteil</td>
-                <td style="text-align:right;padding:0.3rem 0">${monatVorteil25} €</td>
+                <td style="padding:0.4rem 0">Vorteil über 20 Jahre</td>
+                <td style="text-align:right;padding:0.4rem 0">${fmtN(Math.round(ersparnis20))} €</td>
               </tr>
             </table>
           </div>
@@ -2574,7 +2782,7 @@ function renderStep6() {
     </div>
 
     <div style="text-align:center;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)">
-      <button onclick="alert('Das Musterangebot wird in Kürze verfügbar sein.')" style="display:inline-flex;align-items:center;gap:0.6rem;padding:0.85rem 2.5rem;background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none;border-radius:var(--radius);font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.02em;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 4px 14px rgba(99,102,241,0.3)">
+      <button onclick="alert('Das Musterangebot wird in Kürze verfügbar sein.')" style="display:inline-flex;align-items:center;gap:0.6rem;padding:0.85rem 2.5rem;background:linear-gradient(135deg,var(--accent),#7c3aed);color:var(--bg-primary);border:none;border-radius:var(--radius);font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.02em;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 4px 14px rgba(99,102,241,0.3)">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
         Musterangebot erstellen
       </button>
@@ -2591,13 +2799,13 @@ function renderStep6() {
 // ACTIONS
 // ══════════════════════════════════════════════════════
 function restartApp() {
-  state.step = 0; state.inverter = null; state.batteryIdx = null; state.addons = {};
+  state.step = 0; state.moduleType = 'aiko'; state.inverter = null; state.batteryIdx = null; state.addons = {};
   state.consumption = 6000; state.modules = 20;
   state.wkb = { strompreis: 0.42, preiserhoehung: 6, einspeiseverguetung: 0.078, finActive: false, finBetrag: null, finLaufzeit: 20, finZinssatz: 5, consumptionBase: null, consumptionEV: 0, consumptionHP: 0, consumptionKlima: 0, consumptionSonstig: 0, jahresproduktion: null, autarkiegrad: null, eigenverbrauchsanteil: null, investition: null };
   render(); window.scrollTo({top: 0, behavior: 'smooth'});
 }
 function nextStep() {
-  if (state.step >= 5) {
+  if (state.step >= 6) {
     render(); return;
   }
   if (state.step === 3 && !state.inverter) return;
@@ -2607,7 +2815,7 @@ function nextStep() {
     const base = w.consumptionBase !== null ? w.consumptionBase : state.consumption;
     state.consumption = base + (w.consumptionEV || 0) + (w.consumptionHP || 0) + (w.consumptionKlima || 0) + (w.consumptionSonstig || 0);
   }
-  state.step = Math.min(5, state.step + 1);
+  state.step = Math.min(6, state.step + 1);
   render();
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -2617,8 +2825,8 @@ function prevStep() {
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 function goToStep(n) {
-  if (n === 6 && state.step >= 5 && state.inverter) {
-    state.step = 6;
+  if (n === 7 && state.step >= 6 && state.inverter) {
+    state.step = 7;
     render();
     window.scrollTo({top: 0, behavior: 'smooth'});
     return;
@@ -2674,7 +2882,9 @@ function changeCounter(id, delta) {
 // ══════════════════════════════════════════════════════
 document.getElementById('moduleSlider').addEventListener('input', e => {
   state.modules = parseInt(e.target.value);
-  render();
+  renderStep2();
+  renderStep3();
+  renderLivePrice();
 });
 document.getElementById('moduleCountInput').addEventListener('input', e => {
   const val = parseInt(e.target.value);
@@ -2698,7 +2908,7 @@ function setTheme(name) {
   document.getElementById('themeSelect').value = name;
 }
 (function initTheme() {
-  const valid = ['dark','light','bvb','schalke','natur','sunset'];
+  const valid = ['dark','light','bvb','natur','sunset'];
   const saved = localStorage.getItem('winkel-theme');
   if (saved && valid.includes(saved) && saved !== 'dark') setTheme(saved);
   else { localStorage.setItem('winkel-theme', 'dark'); document.getElementById('themeSelect').value = 'dark'; }
